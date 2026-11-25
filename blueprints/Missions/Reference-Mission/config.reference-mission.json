@@ -4274,14 +4274,6 @@
       }
     },
     {
-      "name": "LayersLegacy",
-      "icon": "layers",
-      "js": "LayersToolLegacy",
-      "variables": {
-        "expanded": true
-      }
-    },
-    {
       "name": "Legend",
       "icon": "map-legend",
       "js": "LegendTool",

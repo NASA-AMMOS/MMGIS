@@ -13,7 +13,6 @@ function derive(layerObj) {
     if (layerObj.cogTransform !== true && layerObj.cogColormapJson == null)
         return false
 
-    ToolController_.getTool('LayersToolLegacy')?.populateCogScale(layerObj.name)
     ToolController_.getTool('LayersTool')?.populateCogScale?.(layerObj.name)
     return true
 }

@@ -6,8 +6,6 @@ import TimeControl from '../Basics/TimeControl_/TimeControl'
 import Login from '../Basics/UserInterface_/components/Login/Login'
 import LegendTool from '../../../plugins/core/tools/Legend/LegendTool.js'
 
-import $ from 'jquery'
-
 let L = window.L
 
 var mmgisAPI_ = {
@@ -450,15 +448,7 @@ var mmgisAPI_ = {
                 await L_.toggleLayerHelper(L_.layers.data[layerName], state)
             }
 
-            if (ToolController_.activeToolName === 'LayersToolLegacy') {
-                const id = `#layerstart${F_.getSafeName(layerName)} .checkbox`
-
-                if (L_.layers.on[layerName]) {
-                    $(id).addClass('on')
-                } else {
-                    $(id).removeClass('on')
-                }
-            } else if (ToolController_.activeToolName === 'LayersTool') {
+            if (ToolController_.activeToolName === 'LayersTool') {
                 ToolController_.getTool('LayersTool')?.syncLayer?.(layerName)
             }
         } else {

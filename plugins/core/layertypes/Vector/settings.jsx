@@ -27,7 +27,7 @@ import {
     setDynamicStyleOverride,
 } from '@basics/Layers_/render/layerDynamicStyle'
 import { LayerSettingsSlider } from '@basics/UserInterface_/LayerSettings/LayerSettings'
-import DynamicStyleRamp from '../../tools/LayersLegacy/components/DynamicStyleRamp'
+import DynamicStyleRamp from '@basics/UserInterface_/LayerSettings/DynamicStyleRamp'
 import './settings.css'
 
 const ATTRIBUTE_RANGES = {

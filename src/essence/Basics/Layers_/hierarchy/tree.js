@@ -96,13 +96,8 @@ export async function modifyLayer(L_, data, layerName, type) {
         await L_.removeLayerFromLayersData(layerName)
     }
 
-    if (
-        ToolController_.activeToolName === 'LayersToolLegacy' ||
-        ToolController_.activeToolName === 'LayersTool'
-    ) {
-        const layersTool = ToolController_.getTool(
-            ToolController_.activeToolName
-        )
+    if (ToolController_.activeToolName === 'LayersTool') {
+        const layersTool = ToolController_.getTool('LayersTool')
         if (layersTool.destroy && layersTool.make) {
             layersTool.destroy()
             layersTool.make()
@@ -251,19 +246,11 @@ export async function updateLayersHelper(L_, layerQueueList) {
         if (L_.Map_) L_.Map_.orderedBringToFront(true)
 
         // If the user rearranged the layers with the LayersTool, reset the ordering history
-        ;['LayersToolLegacy', 'LayersTool'].forEach((toolName) => {
-            if (
-                ToolController_.toolModules[toolName] &&
-                ToolController_.toolModules[toolName].orderingHistory?.length > 0
-            )
-                ToolController_.toolModules[toolName].orderingHistory = []
-        })
+        if (ToolController_.toolModules.LayersTool?.orderingHistory?.length > 0)
+            ToolController_.toolModules.LayersTool.orderingHistory = []
 
         // Update the LayersTool in the ToolController if it is active
-        if (
-            ToolController_.activeToolName === 'LayersToolLegacy' ||
-            ToolController_.activeToolName === 'LayersTool'
-        ) {
+        if (ToolController_.activeToolName === 'LayersTool') {
             ToolController_.activeTool.destroy()
             ToolController_.activeTool.make()
         }

@@ -663,8 +663,6 @@ let DataShaders = {
                     ).val(max.toFixed(sigfigs))
                 }
 
-                const layersTool = ToolController_.getTool('LayersToolLegacy')
-                if (layersTool && typeof layersTool.populateCogScale === 'function') layersTool.populateCogScale(name)
                 ToolController_.getTool('LayersTool')?.populateCogScale?.(name)
             }
         },

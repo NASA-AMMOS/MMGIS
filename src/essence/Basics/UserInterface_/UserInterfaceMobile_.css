@@ -229,25 +229,6 @@
     background-color: var(--color-a-5);
 }
 
-/* Overwrite LayersTool CSS */
-#layersToolLegacy .layerName {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-#layersToolLegacy .reload,
-#layersToolLegacy .layerDownload,
-#layersToolLegacy .gears,
-#layersToolLegacy .locate,
-#layersToolLegacy .LayersToolInfo {
-    color: #ccc;
-}
-#layersToolLegacy .reload:hover,
-#layersToolLegacy .layerDownload:hover,
-#layersToolLegacy .gears:hover,
-#layersToolLegacy .locate:hover,
-#layersToolLegacy .LayersToolInfo:hover {
-    background: transparent;
-}
 .locate {
     display: none;
 }

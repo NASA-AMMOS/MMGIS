@@ -1367,8 +1367,7 @@
     white-space: nowrap;
 }
 
-/* Filter: restyles the shared Filtering markup inside LayersTool only, so
-   the legacy LayersToolLegacy keeps its look. */
+/* Filter: restyles the shared Filtering markup inside LayersTool only. */
 #layersTool .lt-typeSettingsFilter {
     width: 100%;
     min-width: 0;

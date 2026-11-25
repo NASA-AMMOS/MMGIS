@@ -1,8 +1,5 @@
 import $ from 'jquery'
-import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
-import TC_ from '@basics/ToolController_/ToolController_'
-import Globe_ from '@basics/Globe_/Globe_'
 import Help from '@basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'SitesTool'
@@ -105,9 +102,6 @@ var SitesTool = {
                                 SitesTool.getViewFromLatLngZoom(sitesVar)
                             )
                             L_.disableAllBut(sitesVar.code)
-                            TC_.toolModules['LayersToolLegacy']?.setHeader?.(
-                                sitesVar.code
-                            )
                         }
                     })(this.sitesVar[i])
                 )
@@ -149,7 +143,6 @@ var SitesTool = {
         L_.setSite(newSiteCode, siteView, dontSetGlobe)
         L_.disableAllBut(newSiteCode, aggregate)
         //Update Layers to begin in site directory
-        TC_.toolModules['LayersToolLegacy']?.setHeader?.(newSiteCode)
     },
     destroy: function () {},
 }

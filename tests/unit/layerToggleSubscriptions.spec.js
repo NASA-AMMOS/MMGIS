@@ -19,7 +19,7 @@ const read = (p) => fs.readFileSync(path.resolve(__dirname, '../..', p), 'utf8')
 
 const VISIBILITY = read('src/essence/Basics/Layers_/display/visibility.js')
 const MAP_RENDERER = read('src/essence/Basics/Map_/MapRenderer.js')
-const LAYERS_TOOL = read('plugins/core/tools/LayersLegacy/LayersToolLegacy.js')
+const LAYERS_TOOL = read('plugins/core/tools/Layers/components/LayersTool.jsx')
 
 test.describe('toggle subscriptions', () => {
     test('a state-preserving toggle notifies nobody', () => {
@@ -39,6 +39,6 @@ test.describe('toggle subscriptions', () => {
     })
 
     test('the Layers tool checkbox follows the toggle subscription', () => {
-        expect(/subscribeOnLayerToggle\('LayersToolLegacy'/.test(LAYERS_TOOL)).toBe(true)
+        expect(/subscribeOnLayerToggle\('LayersTool'/.test(LAYERS_TOOL)).toBe(true)
     })
 })
